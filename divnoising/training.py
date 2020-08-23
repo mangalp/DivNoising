@@ -61,11 +61,18 @@ def recoLoss(predicted_s, x, data_mean, data_std, device, noiseModel):
     """
     predicted_s_denormalized = predicted_s * data_std + data_mean
     x_denormalized = x * data_std + data_mean
-    predicted_s_cloned = predicted_s_denormalized
-    predicted_s_reduced = predicted_s_cloned.permute(1,0,2,3)
-    
     x_cloned = x_denormalized
-    x_cloned = x_cloned.permute(1,0,2,3)
+    predicted_s_cloned = predicted_s_denormalized
+ 
+    if(predicted_s_cloned.dim()==5): # if 3D data
+        predicted_s_reduced = predicted_s_cloned.permute(1,0,2,3,4)
+        x_cloned = x_cloned.permute(1,0,2,3,4)
+    elif(predicted_s_cloned.dim()==4): # if 2D data
+        predicted_s_reduced = predicted_s_cloned.permute(1,0,2,3)
+        x_cloned = x_cloned.permute(1,0,2,3)
+    else:
+        raise ValueError("Only 2D and 3D data with 1 channel is supported!")
+        
     x_reduced = x_cloned[0,...]
     
     likelihoods=noiseModel.likelihood(x_reduced,predicted_s_reduced)

@@ -89,6 +89,44 @@ def extract_patches(x,patch_size,num_patches):
                                                                            random_state=i)    
     return patches
 
+def extract_patches_3d(data,shape=(4,128,128),num_patches=None):
+    """Deterministically extract 3d patches from array of images. 
+    Parameters
+    ----------
+    x: numpy array
+        Array of images.
+    patch_size: int
+        Size of patches to be extracted from each image.
+    num_patches: int
+        Number of patches to be extracted from each image.    
+    """
+    if(num_patches==None):
+        patches = []
+        if data.shape[1] >= shape[0] and data.shape[2] > shape[1] and data.shape[3] > shape[2]:
+            for z in range(0, data.shape[1] - shape[0] + 1,  shape[0]):
+                for y in range(0, data.shape[2] - shape[1] + 1, shape[1]):
+                    for x in range(0, data.shape[3] - shape[2] + 1, shape[2]):
+                        patches.append(data[:, z:z + shape[0], y:y + shape[1], x:x + shape[2]])
+
+            return np.concatenate(patches)
+        elif data.shape[1] == shape[0] and data.shape[2] == shape[1] and data.shape[3] == shape[2]:
+            return data
+        else:
+            print("'shape' is too big.")
+    else:
+        patches = []
+        for i in range(num_patches):
+            z, y, x = np.random.randint(0, data.shape[1] - shape[0] + 1), np.random.randint(0,
+                                                                                            data.shape[
+                                                                                                     2] - shape[
+                                                                                                     1] + 1), np.random.randint(
+               0, data.shape[3] - shape[2] + 1)
+            patches.append(data[0, z:z + shape[0], y:y + shape[1], x:x + shape[2]])
+        if len(patches) > 1:
+            return np.stack(patches)
+        else:
+            return np.array(patches)[np.newaxis]
+
 def augment_data(X_train):
     """Augment data by 8-fold with 90 degree rotations and flips. 
     Parameters
@@ -105,6 +143,27 @@ def augment_data(X_train):
 
     print('Raw image size after augmentation', X_train_aug.shape)
     return X_train_aug
+
+def augment_data_3d(X_train):
+    """Augment data by 8-fold with 90 degree rotations and flips. 
+    Parameters
+    ----------
+    X_train: numpy array
+        Array of training images.
+    """
+    if len(X_train.shape[1:]) == 2:
+        augmented = np.concatenate((X_train,
+                                    np.rot90(X_train, k=1, axes=(1, 2)),
+                                    np.rot90(X_train, k=2, axes=(1, 2)),
+                                    np.rot90(X_train, k=3, axes=(1, 2))))
+    elif len(X_train.shape[1:]) == 3:
+        augmented = np.concatenate((X_train,
+                                    np.rot90(X_train, k=1, axes=(2, 3)),
+                                    np.rot90(X_train, k=2, axes=(2, 3)),
+                                    np.rot90(X_train, k=3, axes=(2, 3))))
+
+    augmented = np.concatenate((augmented, np.flip(augmented, axis=-2)))
+    return augmented
 
 def loadImages(path):
     """Load images from a given directory. 
@@ -309,7 +368,7 @@ def predictMMSE(vae, img, samples, returnSamples=False, tq=True):
     ----------
     vae: VAE object
         DivNoising model.
-    img: array
+    img: tensor
         Image for which denoised MMSE estimate needs to be computed.
     samples: int
         Number of samples to average for computing MMSE estimate.
@@ -318,11 +377,18 @@ def predictMMSE(vae, img, samples, returnSamples=False, tq=True):
     tq: boolean
         If tqdm should be active or not to indicate progress.
     '''
-    img_height,img_width=img.shape[0],img.shape[1]
     img_t = torch.Tensor(img)
-    image_sample = img_t.view(1,1,img.shape[0], img.shape[1]).cuda()
+    if(img_t.dim()==2):
+        img_height,img_width=img.shape[0],img.shape[1]
+        image_sample = img_t.view(1,1,img.shape[0], img.shape[1]).cuda()
+        akku=np.zeros((img_height,img_width))
+    elif(img_t.dim()==3):
+        img_depth,img_height,img_width=img.shape[0],img.shape[1],img.shape[2]
+        image_sample = img_t.view(1,1,img.shape[0], img.shape[1], img.shape[2]).cuda()
+        akku=np.zeros((img_depth,img_height,img_width))
+    
     mu, logvar = vae.encode(image_sample)
-    akku=np.zeros((img_height,img_width))
+    
     
     if returnSamples:
         retSamp=[]
@@ -332,7 +398,10 @@ def predictMMSE(vae, img, samples, returnSamples=False, tq=True):
         recon = vae.decode(z)
         recon_cpu = recon.cpu()
         recon_numpy = recon_cpu.detach().numpy()
-        recon_numpy.shape=(img_height,img_width) 
+        if(img_t.dim()==2):
+            recon_numpy.shape=(img_height,img_width) 
+        elif(img_t.dim()==3):
+            recon_numpy.shape=(img_depth,img_height,img_width) 
         akku+=recon_numpy
         if returnSamples:
             retSamp.append(recon_numpy)

@@ -8,12 +8,13 @@ import numpy as np
 
 
 class DownConv(nn.Module):
-    def __init__(self, in_channels = 1, out_channels = 32, init_filters = 32, n_filters_per_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
+    def __init__(self, data_dim = 2, in_channels = 1, out_channels = 32, init_filters = 32, n_filters_per_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
         """
         A helper Module that performs either 2 or 3 convolutions and 1 MaxPool.
         A ReLU activation follows each convolution.
         """
         super(DownConv, self).__init__()
+        self.data_dim = data_dim
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.init_filters = init_filters 
@@ -27,11 +28,21 @@ class DownConv(nn.Module):
         ins = self.in_channels
         outs = self.out_channels
         
-        self.conv1 = nn.Conv2d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        self.conv2 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        if(self.n_filters_per_depth==3):
-            self.conv3 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)    
+        if(self.data_dim == 2):
+            self.conv1 = nn.Conv2d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.conv2 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            if(self.n_filters_per_depth==3):
+                self.conv3 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            
+        elif(self.data_dim == 3):
+            
+            self.conv1 = nn.Conv3d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.conv2 = nn.Conv3d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            if(self.n_filters_per_depth==3):
+                self.conv3 = nn.Conv3d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.pool = nn.MaxPool3d(kernel_size=2, stride=2)
+        
     
     def forward(self,x):
         x = F.relu(self.conv1(x))
@@ -43,12 +54,13 @@ class DownConv(nn.Module):
     
     
 class UpConv(nn.Module):
-    def __init__(self, in_channels = 1, out_channels = 32, init_filters = 32, n_filters_per_depth=2, kernel_size=3, stride=1, padding=1, bias=True, groups=1):
+    def __init__(self, data_dim = 2, in_channels = 1, out_channels = 32, init_filters = 32, n_filters_per_depth=2, kernel_size=3, stride=1, padding=1, bias=True, groups=1):
         """
         A helper Module that performs either 2 or 3 convolutions and 1 UpConvolution.
         A ReLU activation follows each convolution.
         """
         super(UpConv, self).__init__()
+        self.data_dim = data_dim
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.init_filters = init_filters 
@@ -62,11 +74,20 @@ class UpConv(nn.Module):
         ins = self.in_channels
         outs = self.out_channels
         
-        self.conv1 = nn.Conv2d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        self.conv2 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        if(self.n_filters_per_depth==3):
-            self.conv3 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        self.convtranspose = nn.ConvTranspose2d(in_channels=outs, out_channels=outs, kernel_size=2, stride=2)    
+        if(self.data_dim == 2):
+        
+            self.conv1 = nn.Conv2d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.conv2 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            if(self.n_filters_per_depth==3):
+                self.conv3 = nn.Conv2d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.convtranspose = nn.ConvTranspose2d(in_channels=outs, out_channels=outs, kernel_size=2, stride=2)  
+            
+        elif(self.data_dim == 3):
+            self.conv1 = nn.Conv3d(in_channels=ins, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.conv2 = nn.Conv3d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            if(self.n_filters_per_depth==3):
+                self.conv3 = nn.Conv3d(in_channels=outs, out_channels=outs, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.convtranspose = nn.ConvTranspose3d(in_channels=outs, out_channels=outs, kernel_size=2, stride=2)  
     
     def forward(self,x):
         x = F.relu(self.conv1(x))
@@ -78,12 +99,13 @@ class UpConv(nn.Module):
 
     
 class Encoder(nn.Module):
-    def __init__(self, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
+    def __init__(self, data_dim=2, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
         """
         Encoder pathway. It performs encoding operation and returns 
         latent space mean and log varaiance of the encoder distribution.
         """
         super(Encoder, self).__init__()
+        self.data_dim = data_dim
         self.z_dim = z_dim
         self.in_channels = in_channels
         self.init_filters = init_filters 
@@ -96,13 +118,17 @@ class Encoder(nn.Module):
         self.groups = groups
         self.down_convs = []
         
-        self.convmu = nn.Conv2d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        self.convlogvar = nn.Conv2d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
-        
+        if(self.data_dim == 2):
+            self.convmu = nn.Conv2d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.convlogvar = nn.Conv2d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+        elif(self.data_dim == 3):
+            self.convmu = nn.Conv3d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            self.convlogvar = nn.Conv3d(in_channels=self.init_filters*(2**(self.n_depth-1)), out_channels=self.z_dim, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups = self.groups)
+            
         for i in range(n_depth):
             ins = self.in_channels if i==0 else outs
             outs = self.init_filters*(2**i)
-            down_conv = DownConv(in_channels=ins, out_channels = outs, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth)
+            down_conv = DownConv(data_dim = self.data_dim, in_channels=ins, out_channels = outs, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth)
             self.down_convs.append(down_conv)
      
         self.down_convs = nn.ModuleList(self.down_convs)
@@ -120,12 +146,13 @@ class Encoder(nn.Module):
     
     
 class Decoder(nn.Module):
-    def __init__(self, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
+    def __init__(self, data_dim=2, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
         """
         Decoder pathway. It performs decoding operation using the latent sample, 
         latent mean and latent log variance and returns the output image.
         """
         super(Decoder, self).__init__()
+        self.data_dim = data_dim
         self.z_dim = z_dim
         self.in_channels = in_channels
         self.init_filters = init_filters 
@@ -138,12 +165,15 @@ class Decoder(nn.Module):
         self.groups = groups
         self.up_convs = []
         
-        self.convrecon = nn.Conv2d(in_channels=self.init_filters, out_channels=1, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
+        if(self.data_dim == 2):
+            self.convrecon = nn.Conv2d(in_channels=self.init_filters, out_channels=1, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
+        elif(self.data_dim == 3):
+            self.convrecon = nn.Conv3d(in_channels=self.init_filters, out_channels=1, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
 
         for i in reversed(range(n_depth)):
             ins = self.z_dim if i==(n_depth-1) else outs
             outs = self.init_filters*(2**i)
-            up_conv = UpConv(in_channels=ins, out_channels = outs, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth)
+            up_conv = UpConv(data_dim = self.data_dim, in_channels=ins, out_channels = outs, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth)
             self.up_convs.append(up_conv)
             
         self.up_convs = nn.ModuleList(self.up_convs)
@@ -157,7 +187,7 @@ class Decoder(nn.Module):
 
     
 class VAE(nn.Module):
-    def __init__(self, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
+    def __init__(self, data_dim=2, z_dim=4, in_channels = 1, init_filters = 32, n_filters_per_depth=2, n_depth=2,kernel_size=3, stride=1, padding=1, bias=True, groups=1):
         """
         Creates a DivNoising Variational Autoencoder model.
         It first makes an encoder object to get encoder distribution (latent space mean and log variance).
@@ -165,6 +195,7 @@ class VAE(nn.Module):
         The latent sample is decoded using a decoder object.
         """
         super(VAE, self).__init__()
+        self.data_dim = data_dim
         self.z_dim = z_dim
         self.in_channels = in_channels
         self.init_filters = init_filters 
@@ -177,9 +208,9 @@ class VAE(nn.Module):
         self.groups = groups
         
         
-        self.encoder = Encoder(z_dim=self.z_dim, in_channels = self.in_channels, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth, n_depth=self.n_depth, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
+        self.encoder = Encoder(data_dim=self.data_dim, z_dim=self.z_dim, in_channels = self.in_channels, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth, n_depth=self.n_depth, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
                
-        self.decoder = Decoder(z_dim=self.z_dim, in_channels = self.in_channels, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth, n_depth=self.n_depth, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
+        self.decoder = Decoder(data_dim=self.data_dim, z_dim=self.z_dim, in_channels = self.in_channels, init_filters = self.init_filters, n_filters_per_depth=self.n_filters_per_depth, n_depth=self.n_depth, kernel_size=self.kernel_size, stride=self.stride, padding=self.padding, bias=self.bias, groups=self.groups)
        
         self.cuda()
 
